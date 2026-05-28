@@ -1,14 +1,6 @@
 blueprint:
-  name: Poolpumpe PV-optimiert Advanced
-  description: >
-    Intelligente Steuerung einer Poolpumpe mit:
-      - Mindestlaufzeiten
-      - separaten Zeiten für Werktage/Wochenende
-      - PV-Überschussnutzung
-      - optionaler Batteriespeicher-Berücksichtigung
-      - optionaler Temperaturlogik
-      - optionaler Poolsperre
-
+  name: Poolpumpe PV optimiert
+  description: Poolpumpe mit Werktag/Wochenende + PV Überschuss
   domain: automation
 
   input:
@@ -20,34 +12,28 @@ blueprint:
           domain: switch
 
     weekday_start:
-      name: Werktag Startzeit
+      name: Werktag Start
       default: "11:00:00"
       selector:
         time:
 
     weekday_end:
-      name: Werktag Endzeit
+      name: Werktag Ende
       default: "14:00:00"
       selector:
         time:
 
     weekend_start:
-      name: Wochenende Startzeit
+      name: Wochenende Start
       default: "08:00:00"
       selector:
         time:
 
     weekend_end:
-      name: Wochenende Endzeit
+      name: Wochenende Ende
       default: "11:00:00"
       selector:
         time:
-
-    enable_pv:
-      name: PV Überschuss aktivieren
-      default: true
-      selector:
-        boolean:
 
     pv_sensor:
       name: PV Überschuss Sensor
@@ -56,34 +42,40 @@ blueprint:
           domain: sensor
 
     pv_threshold:
-      name: Mindestüberschuss
+      name: PV Schwelle
       default: 1500
       selector:
         number:
           min: 0
           max: 10000
           step: 100
-          unit_of_measurement: W
 
 trigger:
   - platform: time_pattern
     minutes: "/5"
 
+variables:
+
+  weekday_start: !input weekday_start
+  weekday_end: !input weekday_end
+  weekend_start: !input weekend_start
+  weekend_end: !input weekend_end
+  pv_threshold: !input pv_threshold
+
 condition: []
 
 action:
+
   - choose:
 
       - conditions:
-          - condition: time
-            weekday:
-              - mon
-              - tue
-              - wed
-              - thu
-              - fri
-            after: !input weekday_start
-            before: !input weekday_end
+          - condition: template
+            value_template: >
+              {{
+                now().weekday() < 5 and
+                now().strftime('%H:%M:%S') >= weekday_start and
+                now().strftime('%H:%M:%S') <= weekday_end
+              }}
 
         sequence:
           - service: switch.turn_on
@@ -91,12 +83,13 @@ action:
               entity_id: !input pool_switch
 
       - conditions:
-          - condition: time
-            weekday:
-              - sat
-              - sun
-            after: !input weekend_start
-            before: !input weekend_end
+          - condition: template
+            value_template: >
+              {{
+                now().weekday() >= 5 and
+                now().strftime('%H:%M:%S') >= weekend_start and
+                now().strftime('%H:%M:%S') <= weekend_end
+              }}
 
         sequence:
           - service: switch.turn_on

@@ -1,15 +1,26 @@
 blueprint:
   name: Poolpumpe PV optimiert
-  description: Poolpumpe mit Werktag/Wochenende + PV Überschuss
+  description: Poolpumpe mit Werktag/Wochenende, PV Überschuss und manuellen Overrides
   domain: automation
 
   input:
-
     pool_switch:
       name: Poolpumpe
       selector:
         entity:
           domain: switch
+
+    bath_mode:
+      name: Bademodus (Input Boolean)
+      selector:
+        entity:
+          domain: input_boolean
+
+    force_on:
+      name: Filterboost aktiv (Input Boolean)
+      selector:
+        entity:
+          domain: input_boolean
 
     weekday_start:
       name: Werktag Start
@@ -42,12 +53,12 @@ blueprint:
           domain: sensor
 
     pv_threshold:
-      name: PV Schwelle
-      default: 1500
+      name: PV Schwelle (bei evcc_grid_power negativ)
+      default: -500
       selector:
         number:
-          min: 0
-          max: 10000
+          min: -5000
+          max: 5000
           step: 100
 
 trigger:
@@ -55,28 +66,27 @@ trigger:
     minutes: "/5"
 
 variables:
-
   weekday_start: !input weekday_start
   weekday_end: !input weekday_end
   weekend_start: !input weekend_start
   weekend_end: !input weekend_end
-  pv_threshold: !input pv_threshold
-
-condition: []
 
 action:
-
   - choose:
 
       - conditions:
-          - condition: template
-            value_template: >
-              {{
-                now().weekday() < 5 and
-                now().strftime('%H:%M:%S') >= weekday_start and
-                now().strftime('%H:%M:%S') <= weekday_end
-              }}
+          - condition: state
+            entity_id: !input bath_mode
+            state: "on"
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input pool_switch
 
+      - conditions:
+          - condition: state
+            entity_id: !input force_on
+            state: "on"
         sequence:
           - service: switch.turn_on
             target:
@@ -85,12 +95,16 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{
-                now().weekday() >= 5 and
-                now().strftime('%H:%M:%S') >= weekend_start and
-                now().strftime('%H:%M:%S') <= weekend_end
-              }}
+              {{ now().weekday() < 5 and now().strftime('%H:%M:%S') >= weekday_start and now().strftime('%H:%M:%S') <= weekday_end }}
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input pool_switch
 
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ now().weekday() >= 5 and now().strftime('%H:%M:%S') >= weekend_start and now().strftime('%H:%M:%S') <= weekend_end }}
         sequence:
           - service: switch.turn_on
             target:
@@ -99,8 +113,7 @@ action:
       - conditions:
           - condition: numeric_state
             entity_id: !input pv_sensor
-            above: !input pv_threshold
-
+            below: !input pv_threshold
         sequence:
           - service: switch.turn_on
             target:
@@ -111,4 +124,4 @@ action:
         target:
           entity_id: !input pool_switch
 
-mode: single
+mode: restart

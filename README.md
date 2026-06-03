@@ -6,6 +6,7 @@ Intelligenter Home-Assistant-Blueprint zur Steuerung einer Poolpumpe anhand von:
 - separaten Zeiten für Werktage und Wochenende
 - PV-Überschuss
 - optionalem Batteriespeicher
+- manuellen Overrides
 - optionaler Temperaturlogik
 - optionaler Poolsperre
 
@@ -20,6 +21,14 @@ Zusätzliche Laufzeit bei vorhandenem Solarstrom-Überschuss.
 ### Wochenende / Werktage
 Separate Zeitfenster möglich.
 
+### Manueller Override
+Unterstützt künftig:
+
+- Poolpumpe für X Stunden erzwingen EIN
+- Poolpumpe für X Stunden erzwingen AUS
+- Bademodus
+- Wartungsmodus
+
 ### Home Assistant kompatibel
 Optimiert für:
 
@@ -33,53 +42,47 @@ Optimiert für:
 
 # Installation
 
-## Variante 1: Direkt über GitHub
+Blueprint importieren über:
 
-Blueprint importieren:
-
-```text
-https://github.com/zu3st-de/poolpumpe-blueprint
-```
-
-## Variante 2: Manuell
-
-Datei kopieren nach:
-
-```text
-/config/blueprints/automation/poolpumpe/
-```
-
-Anschließend in Home Assistant:
-
-```text
-Einstellungen → Automatisierungen & Szenen → Blueprints
-```
+https://raw.githubusercontent.com/zu3st-de/poolpumpe-blueprint/main/blueprints/automation/poolpumpe/poolpumpe_pv_advanced.yaml
 
 ---
 
-# Beispiel-Konfiguration
+# Empfohlene Sensoren
 
-## Werktage
+## EVCC Überschuss
 
-- 11:00 - 14:00 Uhr
+Sensor:
 
-## Wochenende
+sensor.evcc_grid_power
 
-- 08:00 - 11:00 Uhr
+Empfohlene Schwelle:
 
-## PV Überschuss
+-500 W bis -1000 W
 
-- Start ab 1500W Überschuss
+Negativ = Einspeisung / Überschuss
+Positiv = Netzbezug
 
 ---
 
-# Empfehlung
+# Roadmap
 
-Für kleinere Pools reicht häufig:
+## Version 1.1
 
-- 2x tägliche Umwälzung
-- bevorzugt während PV-Überschuss
-- zusätzliche Laufzeit bei heißem Wetter
+- Manueller EIN-Override
+- Manueller AUS-Override
+- Laufzeit in Stunden definierbar
+
+## Version 1.2
+
+- Temperaturabhängige Mindestlaufzeit
+- Automatische Umwälzungsberechnung
+
+## Version 1.3
+
+- Wetterprognose
+- Algenprävention
+- Pooltemperatur-Integration
 
 ---
 
